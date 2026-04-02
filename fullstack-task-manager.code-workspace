@@ -1,0 +1,34 @@
+{
+  "folders": [
+    {
+      "name": "Comments Service",
+      "path": "comments-service"
+    },
+    {
+      "name": "Tasks Service",
+      "path": "tasks-service"
+    },
+    {
+      "name": "Frontend",
+      "path": "frontend"
+    }
+  ],
+  "settings": {    
+    // Search exclusions
+    "search.exclude": {
+      "**/node_modules": true,
+      "**/tmp": true,
+      "**/log": true,
+      "**/vendor": true,
+      "**/.git": true,
+      "**/db/schema.rb": true
+    }
+  },
+  // Ruby LSP configuration
+    "rubyLsp.rubyVersionManager": "none",
+    "rubyLsp.bundlePath": "F:\\Ruby32-x64\\bin\\bundle.bat",
+    "rubyLsp.featuresEnabled": {
+      "rubocop": true,
+      "formatting": true
+    }
+}
