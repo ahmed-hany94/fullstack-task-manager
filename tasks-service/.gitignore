@@ -6,6 +6,7 @@
 *.dylib
 /tasks-service
 /dist/
+/tasks-service/tasks-service
 
 # Test binary
 *.test
@@ -26,3 +27,5 @@ go.work.sum
 
 # Environment
 .env
+.env.local
+.env.*.local
