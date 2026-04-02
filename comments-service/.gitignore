@@ -1,0 +1,25 @@
+# Environment files
+.env
+.env.local
+.env.production
+
+# Docker
+Dockerfile
+docker-compose.yml
+
+# Temp files
+*.swp
+*.swo
+*.pid
+
+# Database backups
+*.sql
+*.dump
+
+# Uploads
+/storage/*
+!/storage/.keep
+
+# Master key
+config/master.key
+"@
