@@ -1,0 +1,131 @@
+# Use the new plugin system instead of require
+plugins:
+  - rubocop-rails
+  - rubocop-performance
+
+# Remove the 'require' section completely
+# require:
+#   - rubocop-rails
+#   - rubocop-performance
+
+AllCops:
+  NewCops: enable
+  TargetRubyVersion: 3.0
+  TargetRailsVersion: 7.1
+  Exclude:
+    - "db/schema.rb"
+    - "db/seeds.rb"
+    - "Gemfile"
+    - "Gemfile.lock"
+    - "Rakefile"
+    - "lib/tasks/*.rake"
+    - "bin/*"
+    - "config/puma.rb"
+    - "config/spring.rb"
+    - "config/environments/development.rb"
+    - "config/environments/production.rb"
+    - "spec/spec_helper.rb"
+    - "vendor/**/*"
+    - "node_modules/**/*"
+    - "tmp/**/*"
+    - "log/**/*"
+
+
+# Windows-specific configuration
+Layout/EndOfLine:
+  Enabled: true
+  EnforcedStyle: lf
+  
+# Style configurations
+Style/FrozenStringLiteralComment:
+  Enabled: true
+  EnforcedStyle: always
+  Exclude:
+    - "Gemfile"
+    - "Rakefile"
+    - "config.ru"
+    - "db/seeds.rb"
+
+Style/StringLiterals:
+  Enabled: true
+  EnforcedStyle: single_quotes
+  Exclude:
+    - "Gemfile"
+    - "Rakefile"
+    - "config.ru"
+
+Style/PercentLiteralDelimiters:
+  Enabled: true
+  PreferredDelimiters:
+    '%i': '[]'
+    '%I': '[]'
+    '%w': '[]'
+    '%W': '[]'
+
+Style/SymbolArray:
+  Enabled: true
+  EnforcedStyle: percent
+
+Style/Documentation:
+  Enabled: false
+
+# Rails-specific configurations
+Rails:
+  Enabled: true
+
+Rails/ApplicationController:
+  Enabled: true
+
+Rails/ApplicationJob:
+  Enabled: true
+
+Rails/ApplicationMailer:
+  Enabled: true
+
+Rails/ApplicationRecord:
+  Enabled: true
+
+Rails/HttpStatus:
+  Enabled: true
+  EnforcedStyle: symbolic
+
+Rails/SaveBang:
+  Enabled: true
+  AllowImplicitReturn: true
+
+# Performance-specific configurations
+Performance:
+  Enabled: true
+
+Performance/ChainArrayAllocation:
+  Enabled: true
+
+Performance/RedundantMerge:
+  Enabled: true
+
+Performance/UnfreezeString:
+  Enabled: true
+
+# Metrics configurations
+Metrics/AbcSize:
+  Max: 20
+
+Metrics/BlockLength:
+  Max: 30
+  Exclude:
+    - "config/routes.rb"
+    - "config/initializers/*"
+    - "test/**/*"
+
+Metrics/MethodLength:
+  Max: 15
+
+# Layout configurations
+Layout/LineLength:
+  Max: 120
+  Exclude:
+    - "db/migrate/*.rb"
+    - "config/initializers/*.rb"
+
+Layout/IndentationWidth:
+  Width: 2
