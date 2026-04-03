@@ -1,11 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { Task } from '../types/task';
 import api from '../services/api';
+import { getComments } from '../services/commentApi';
 
 export function useTasks() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [commentCounts, setCommentCounts] = useState<Map<number, number>>(
+    new Map(),
+  );
 
   const fetchTasks = useCallback(async () => {
     try {
@@ -13,6 +17,18 @@ export function useTasks() {
       setError(null);
       const data = await api.getTasks();
       setTasks(data || []);
+
+      const counts = new Map<number, number>();
+      for (const task of data || []) {
+        try {
+          const res = await getComments(task.id);
+          counts.set(task.id, res.data.length);
+        } catch (err) {
+          console.error(`Failed to fetch comments for task ${task.id}:`, err);
+          counts.set(task.id, 0);
+        }
+      }
+      setCommentCounts(counts);
     } catch (err) {
       setError('Failed to load tasks');
       console.error(err);
@@ -62,6 +78,19 @@ export function useTasks() {
     }
   }, []);
 
+  const updateCommentCount = useCallback((taskId: number, newCount: number) => {
+    setCommentCounts(prev => new Map(prev).set(taskId, newCount));
+  }, []);
+
+  const refreshCommentCount = useCallback(async (taskId: number) => {
+    try {
+      const res = await getComments(taskId);
+      setCommentCounts(prev => new Map(prev).set(taskId, res.data.length));
+    } catch (err) {
+      console.error('Failed to refresh comment count:', err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchTasks();
   }, [fetchTasks]);
@@ -70,6 +99,9 @@ export function useTasks() {
     tasks,
     loading,
     error,
+    commentCounts,
+    updateCommentCount,
+    refreshCommentCount,
     createTask,
     updateTask,
     deleteTask,

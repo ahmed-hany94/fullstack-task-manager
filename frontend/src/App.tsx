@@ -1,8 +1,10 @@
+import { useEffect } from 'react';
 import { LoadingSpinner } from './components/LoadingSpinner';
 import { TaskCard } from './components/TaskCard';
 import { TaskForm } from './components/TaskForm';
 import config from './config';
 import { useTasks } from './hooks/useTasks';
+import webSocketService from './services/websocket';
 
 function App() {
   const {
@@ -25,6 +27,14 @@ function App() {
   if (config.enableDebugMode) {
     console.log('App running with config:', config);
   }
+
+  useEffect(() => {
+    webSocketService.connect();
+
+    return () => {
+      webSocketService.disconnect();
+    };
+  }, []);
 
   return (
     <div

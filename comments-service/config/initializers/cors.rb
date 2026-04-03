@@ -17,3 +17,6 @@ Rails.application.config.middleware.insert_before 0, Rack::Cors do
              credentials: false
   end
 end
+
+# Allow WebSocket connections
+Rails.application.config.action_cable.allowed_request_origins = ['http://localhost:5173', 'http://localhost:3001']

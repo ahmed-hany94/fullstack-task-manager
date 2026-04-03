@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import type { Task, Comment } from '../types/task';
 import {
   getComments,
   createComment,
   deleteComment,
 } from '../services/commentApi';
+import webSocketService from '../services/websocket';
 
 interface TaskCardProps {
   task: Task;
@@ -28,12 +29,82 @@ export function TaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
   const [newComment, setNewComment] = useState('');
   const [showComments, setShowComments] = useState(false);
   const [isAddingComment, setIsAddingComment] = useState(false);
+  const [commentCount, setCommentCount] = useState(0);
+
+  const isCommentsOpenRef = useRef(false);
+
+  useEffect(() => {
+    const fetchInitialCount = async () => {
+      try {
+        const res = await getComments(task.id);
+        setCommentCount(res.data.length);
+      } catch (error) {
+        console.error('Failed to fetch comment count:', error);
+      }
+    };
+    fetchInitialCount();
+  }, [task.id]);
 
   useEffect(() => {
     if (showComments) {
-      getComments(task.id).then(res => setComments(res.data));
+      isCommentsOpenRef.current = true;
+      const fetchComments = async () => {
+        try {
+          const res = await getComments(task.id);
+          setComments(res.data);
+          setCommentCount(res.data.length);
+        } catch (error) {
+          console.error('Failed to fetch comments:', error);
+        }
+      };
+      fetchComments();
+    } else {
+      isCommentsOpenRef.current = false;
     }
   }, [showComments, task.id]);
+
+  useEffect(() => {
+    webSocketService.subscribeToTask(task.id, message => {
+      console.log('WebSocket message received:', message);
+
+      switch (message.type) {
+        case 'NEW_COMMENT':
+          setCommentCount(prev => prev + 1);
+
+          if (isCommentsOpenRef.current && message.comment) {
+            setComments(prev => {
+              if (prev.some(c => c.id === message.comment!.id)) {
+                return prev;
+              }
+              return [...prev, message.comment!];
+            });
+          }
+          break;
+
+        case 'DELETE_COMMENT':
+          setCommentCount(prev => prev - 1);
+
+          if (isCommentsOpenRef.current && message.comment_id) {
+            setComments(prev => prev.filter(c => c.id !== message.comment_id));
+          }
+          break;
+
+        case 'UPDATE_COMMENT':
+          if (isCommentsOpenRef.current && message.comment) {
+            setComments(prev =>
+              prev.map(c =>
+                c.id === message.comment!.id ? message.comment! : c,
+              ),
+            );
+          }
+          break;
+      }
+    });
+
+    return () => {
+      webSocketService.unsubscribeFromTask(task.id);
+    };
+  }, [task.id]);
 
   const handleStatusChange = async (newStatus: Task['status']) => {
     setIsUpdating(true);
@@ -75,24 +146,55 @@ export function TaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
 
     setIsAddingComment(true);
     try {
+      const tempId = Date.now();
+      const optimisticComment = {
+        id: tempId,
+        content: newComment,
+        task_id: task.id,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      if (isCommentsOpenRef.current) {
+        setComments(prev => [...prev, optimisticComment]);
+      }
+      setCommentCount(prev => prev + 1);
+
       await createComment(task.id, newComment);
       setNewComment('');
+
+    } catch (error) {
+      console.error('Failed to add comment:', error);
+      if (isCommentsOpenRef.current) {
+        const res = await getComments(task.id);
+        setComments(res.data);
+      }
       const res = await getComments(task.id);
-      setComments(res.data);
+      setCommentCount(res.data.length);
     } finally {
       setIsAddingComment(false);
     }
   };
 
   const handleDeleteComment = async (commentId: number) => {
-    if (confirm('Delete this comment?')) {
-      try {
-        await deleteComment(commentId);
+    if (!confirm('Delete this comment?')) return;
+
+    try {
+      if (isCommentsOpenRef.current) {
+        setComments(prev => prev.filter(c => c.id !== commentId));
+      }
+      setCommentCount(prev => prev - 1);
+
+      await deleteComment(commentId);
+
+    } catch (error) {
+      console.error('Failed to delete comment:', error);
+      if (isCommentsOpenRef.current) {
         const res = await getComments(task.id);
         setComments(res.data);
-      } catch (error) {
-        console.error('Failed to delete comment:', error);
       }
+      const res = await getComments(task.id);
+      setCommentCount(res.data.length);
     }
   };
 
@@ -186,7 +288,7 @@ export function TaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
             >
               {showComments
                 ? 'Hide Comments'
-                : `Show Comments (${comments.length})`}
+                : `Show Comments (${commentCount})`}
             </button>
           </div>
 
