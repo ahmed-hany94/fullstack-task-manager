@@ -65,7 +65,7 @@ export function useTasks() {
   useEffect(() => {
     fetchTasks();
   }, [fetchTasks]);
-  
+
   return {
     tasks,
     loading,

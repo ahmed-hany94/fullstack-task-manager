@@ -1,17 +1,14 @@
 import axios, { AxiosError, type AxiosInstance } from 'axios';
+import config from '../config';
 
 class ApiService {
   private api: AxiosInstance;
 
   constructor() {
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080';
-
     this.api = axios.create({
-      baseURL: apiUrl,
-      timeout: 10000,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      baseURL: config.apiUrl,
+      timeout: config.timeout,
+      headers: config.headers,
     });
 
     this.api.interceptors.response.use(

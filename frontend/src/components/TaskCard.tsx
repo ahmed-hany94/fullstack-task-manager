@@ -1,5 +1,10 @@
-import { useState } from 'react';
-import type { Task } from '../types/task';
+import { useEffect, useState } from 'react';
+import type { Task, Comment } from '../types/task';
+import {
+  getComments,
+  createComment,
+  deleteComment,
+} from '../services/commentApi';
 
 interface TaskCardProps {
   task: Task;
@@ -19,6 +24,16 @@ export function TaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState(task.title);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [comments, setComments] = useState<Comment[]>([]);
+  const [newComment, setNewComment] = useState('');
+  const [showComments, setShowComments] = useState(false);
+  const [isAddingComment, setIsAddingComment] = useState(false);
+
+  useEffect(() => {
+    if (showComments) {
+      getComments(task.id).then(res => setComments(res.data));
+    }
+  }, [showComments, task.id]);
 
   const handleStatusChange = async (newStatus: Task['status']) => {
     setIsUpdating(true);
@@ -51,6 +66,32 @@ export function TaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
         await onDelete(task.id);
       } finally {
         setIsUpdating(false);
+      }
+    }
+  };
+
+  const handleAddComment = async () => {
+    if (!newComment.trim()) return;
+
+    setIsAddingComment(true);
+    try {
+      await createComment(task.id, newComment);
+      setNewComment('');
+      const res = await getComments(task.id);
+      setComments(res.data);
+    } finally {
+      setIsAddingComment(false);
+    }
+  };
+
+  const handleDeleteComment = async (commentId: number) => {
+    if (confirm('Delete this comment?')) {
+      try {
+        await deleteComment(commentId);
+        const res = await getComments(task.id);
+        setComments(res.data);
+      } catch (error) {
+        console.error('Failed to delete comment:', error);
       }
     }
   };
@@ -129,7 +170,136 @@ export function TaskCard({ task, onUpdate, onDelete }: TaskCardProps) {
                 </option>
               ))}
             </select>
+
+            <button
+              onClick={() => setShowComments(!showComments)}
+              style={{
+                marginLeft: 'auto',
+                padding: '4px 12px',
+                backgroundColor: '#2196F3',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '12px',
+              }}
+            >
+              {showComments
+                ? 'Hide Comments'
+                : `Show Comments (${comments.length})`}
+            </button>
           </div>
+
+          {/* Comments Section */}
+          {showComments && (
+            <div
+              style={{
+                marginTop: '16px',
+                paddingTop: '12px',
+                borderTop: '1px solid #e0e0e0',
+              }}
+            >
+              <h4
+                style={{
+                  margin: '0 0 12px 0',
+                  fontSize: '14px',
+                  color: '#666',
+                }}
+              >
+                Comments
+              </h4>
+
+              {/* Comments List */}
+              <div
+                style={{
+                  marginBottom: '12px',
+                  maxHeight: '200px',
+                  overflowY: 'auto',
+                }}
+              >
+                {comments.length === 0 ? (
+                  <p
+                    style={{
+                      color: '#999',
+                      fontSize: '12px',
+                      textAlign: 'center',
+                    }}
+                  >
+                    No comments yet. Be the first to comment!
+                  </p>
+                ) : (
+                  comments.map(comment => (
+                    <div
+                      key={comment.id}
+                      style={{
+                        backgroundColor: '#f9f9f9',
+                        padding: '8px',
+                        borderRadius: '4px',
+                        marginBottom: '8px',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'start',
+                      }}
+                    >
+                      <p style={{ margin: 0, fontSize: '14px', flex: 1 }}>
+                        {comment.content}
+                      </p>
+                      <button
+                        onClick={() => handleDeleteComment(comment.id)}
+                        style={{
+                          backgroundColor: '#ff4444',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '3px',
+                          padding: '2px 8px',
+                          cursor: 'pointer',
+                          fontSize: '11px',
+                          marginLeft: '8px',
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Add Comment Form */}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="text"
+                  value={newComment}
+                  onChange={e => setNewComment(e.target.value)}
+                  onKeyPress={e => e.key === 'Enter' && handleAddComment()}
+                  placeholder="Write a comment..."
+                  disabled={isAddingComment}
+                  style={{
+                    flex: 1,
+                    padding: '8px',
+                    fontSize: '14px',
+                    border: '1px solid #e0e0e0',
+                    borderRadius: '4px',
+                    outline: 'none',
+                  }}
+                />
+                <button
+                  onClick={handleAddComment}
+                  disabled={isAddingComment || !newComment.trim()}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#4CAF50',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                  }}
+                >
+                  {isAddingComment ? 'Adding...' : 'Add'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         <button
