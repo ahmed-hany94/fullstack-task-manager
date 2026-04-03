@@ -146,14 +146,9 @@ func updateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var task Task
-	if err := json.NewDecoder(r.Body).Decode(&task); err != nil {
-		http.Error(w, "Invalid JSON", http.StatusBadRequest)
-		return
-	}
-
-	query := "UPDATE tasks SET title = $1, status = $2 WHERE id = $3 RETURNING id"
-	err = db.QueryRow(query, task.Title, task.Status, id).Scan(&task.ID)
+	var existingTask Task
+	query := "SELECT id, title, status FROM tasks WHERE id = $1"
+	err = db.QueryRow(query, id).Scan(&existingTask.ID, &existingTask.Title, &existingTask.Status)
 	if err == sql.ErrNoRows {
 		http.Error(w, "Task not found", http.StatusNotFound)
 		return
@@ -163,8 +158,28 @@ func updateTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var updates Task
+	if err := json.NewDecoder(r.Body).Decode(&updates); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if updates.Title != "" {
+		existingTask.Title = updates.Title
+	}
+	if updates.Status != "" {
+		existingTask.Status = updates.Status
+	}
+
+	query = "UPDATE tasks SET title = $1, status = $2 WHERE id = $3 RETURNING id"
+	err = db.QueryRow(query, existingTask.Title, existingTask.Status, id).Scan(&existingTask.ID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(task)
+	json.NewEncoder(w).Encode(existingTask)
 }
 
 func deleteTask(w http.ResponseWriter, r *http.Request) {
